@@ -17,5 +17,5 @@ app.use("/api/cards", cardsRouter);
 
 const PORT = 8181;
 app.listen(PORT, () =>
-  console.log(chalk.blueBright.bold(`server run on: http://:localhost:${PORT}`))
+  console.log(chalk.blueBright.bold(`server run on: http://localhost:${PORT}`))
 );

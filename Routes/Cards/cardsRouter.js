@@ -90,7 +90,7 @@ router.post("/", auth, async (req, res) => {
 router.put("/:id", auth, async (req, res) => {
   try {
     let user = req.user;
-    if (!user.biz) {
+    if (!user.biz && !user.isAdmin) {
       console.log(
         chalk.redBright("A non-business user attempted to create a card!")
       );
@@ -122,6 +122,9 @@ router.put("/:id", auth, async (req, res) => {
       _id: req.params.id,
       userID: user._id,
     };
+    if (user.isAdmin) {
+      delete filter.userID;
+    }
 
     card = await Card.findOneAndUpdate(filter, card);
     if (!card) {
@@ -140,17 +143,30 @@ router.put("/:id", auth, async (req, res) => {
 router.delete("/:id", auth, async (req, res) => {
   try {
     let user = req.user;
-    if (!user.biz) {
+    if (!user.biz && !user.isAdmin) {
       console.log(
         chalk.redBright("A non-business user attempted to create a card!")
       );
       return res.status(403).json("You are not authorize to delete this card!");
     }
 
-    let card = await Card.findOneAndRemove({
-      _id: req.params.id,
-      user_id: user._id,
-    });
+    let card;
+
+    if (user.isAdmin) {
+      card = await Card.findOneAndRemove({
+        _id: req.params.id,
+      });
+    } else if (user.biz) {
+      card = await Card.findOneAndRemove({
+        _id: req.params.id,
+        user_id: user._id,
+      });
+    }
+
+    // let card = await Card.findOneAndRemove({
+    //   _id: req.params.id,
+    //   user_id: user._id,
+    // });
 
     if (!card) {
       console.log(chalk.redBright("Un authorized user!"));
@@ -170,7 +186,7 @@ router.patch("/card-like/:id", auth, async (req, res) => {
     const user = req.user;
     let card = await Card.findOne({ _id: req.params.id });
 
-    const cardLikes = card.likes.find(id => id === user._id);
+    const cardLikes = card.likes.find((id) => id === user._id);
 
     if (!cardLikes) {
       card.likes.push(user._id);
@@ -178,7 +194,7 @@ router.patch("/card-like/:id", auth, async (req, res) => {
       return res.send(card);
     }
 
-    const cardFiltered = card.likes.filter(id => id !== user._id);
+    const cardFiltered = card.likes.filter((id) => id !== user._id);
     card.likes = cardFiltered;
     card = await card.save();
     return res.send(card);
